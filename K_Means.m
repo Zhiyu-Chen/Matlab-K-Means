@@ -78,12 +78,87 @@ function cluster_Callback(hObject, eventdata, handles)
 % hObject    handle to cluster (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-num = str2double(get(handles.num_cluster,'String'));
+k = str2double(get(handles.num_cluster,'String'));%number of clusters
+max_iter = 50;
 x = handles.x;
 y = handles.y;
+[num dimension] = size(x);%num is number of data points
 data = [x y];
-[IDC,C] = kmeans(data,num);
+min_x = min(x);
+min_y = min(y);
+max_x = max(x);
+max_y = max(y);
+C = zeros(k,2); %centroids
+IDC = zeros(num,1);
+%initialize centroids
+for i = 1:k
+    C(i,1) = min_x + (max_x - min_x) * rand();
+    C(i,2) = min_y + (max_y - min_y) * rand();
+end
 
+iter = 0;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%clustering%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+while 1
+    CC = C;
+    %find closest center
+    for i = 1:num
+        cur_cluster = 1;
+        cur_dist = norm(data(i,:) - C(cur_cluster,:),2);
+        for m = 2:k
+            dist = norm(data(i,:) - C(m,:),2);
+            if dist < cur_dist
+                cur_cluster = m;
+                cur_dist = dist;
+            end
+        end
+    IDC(i) = cur_cluster;
+    end
+    
+    %recalculate the centroids
+    for i = 1:k
+        C(i,:) = sum(data(find(IDC == i),:));
+        C(i,:) = C(i,:) / length(find(IDC == i));
+    end
+    
+    %%%%%%%%%%%%%%%%display the current clusters%%%%%%%%%%%%%%%%
+    %different clusters have different colors and avoid [1 1 1] which is
+    %white
+    color = linspace(0,1,k+1);
+    color_space = zeros(k+1,3);
+    for i = 1:k
+        %color_space(i,:) = [color(i) color(i) color(i)];
+        color_space(i,:) = rand(1,3);
+    end
+    
+    for i = 1:num
+        plot(handles.axes1,x(i),y(i),'o','Color',color_space(IDC(i),:));
+        hold on;
+    end
+    pause(1);
+ 
+    %compute RSS error
+    rss = 0;
+    for i = 1:num
+        rss = rss + norm(data(i,:) - C(IDC(i),:),2);
+    end
+    rss = rss / num;
+    
+    if rss < 0.1
+        break;
+    end
+    
+    if CC == C
+        break;
+    end
+    
+    iter = iter + 1;
+    if iter > max_iter
+        break;
+    end
+    
+end
+    
+            
 function num_cluster_Callback(hObject, eventdata, handles)
 % hObject    handle to num_cluster (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -112,8 +187,13 @@ function bt_choose_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %axes(handles.axes1)
-x = []
-y = []
+set(handles.bt_para,'enable','off');
+set(handles.bt_choose,'enable','off');
+set(handles.cluster,'enable','off');
+
+x = [];
+y = [];
+axes(handles.axes1);
 [tx,ty,key] = ginput(1);
 while key
     x = [x;tx];
@@ -122,6 +202,9 @@ while key
     plot(handles.axes1,tx,ty,'ro');
     [tx,ty,key] = ginput(1);
 end
+set(handles.bt_para,'enable','on');
+set(handles.bt_choose,'enable','on');
+set(handles.cluster,'enable','on');
 handles.x = x;
 handles.y = y;
 guidata(hObject,handles);
