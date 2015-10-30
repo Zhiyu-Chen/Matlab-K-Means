@@ -79,7 +79,7 @@ function cluster_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 k = str2double(get(handles.num_cluster,'String'));%number of clusters
-max_iter = 50;
+max_iter = 20;
 x = handles.x;
 y = handles.y;
 [num dimension] = size(x);%num is number of data points
@@ -92,13 +92,15 @@ C = zeros(k,2); %centroids
 IDC = zeros(num,1);
 %initialize centroids
 for i = 1:k
-    C(i,1) = min_x + (max_x - min_x) * rand();
-    C(i,2) = min_y + (max_y - min_y) * rand();
+    C(i,1) = min_x + (max_x - min_x) * i/k;
+    C(i,2) = min_y + (max_y - min_y) * i/k;
 end
 
 iter = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%clustering%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 while 1
+    axes(handles.axes1);
+    cla;
     CC = C;
     %find closest center
     for i = 1:num
@@ -130,13 +132,20 @@ while 1
         color_space(i,:) = rand(1,3);
     end
     
-    for i = 1:num
-        plot(handles.axes1,x(i),y(i),'o','Color',color_space(IDC(i),:));
+    %plot centroids
+    for i = 1:k
+        plot(handles.axes1,C(i,1),C(i,2),'x','Color',color_space(i,:));
         hold on;
     end
-    pause(1);
- 
+    
+    for i = 1:num
+        plot(handles.axes1,x(i),y(i),'.','Color',color_space(IDC(i),:));
+        hold on;
+    end
+    pause(0.5);
+  
     %compute RSS error
+    %{
     rss = 0;
     for i = 1:num
         rss = rss + norm(data(i,:) - C(IDC(i),:),2);
@@ -146,18 +155,21 @@ while 1
     if rss < 0.1
         break;
     end
-    
+    %}
     if CC == C
         break;
     end
     
     iter = iter + 1;
     if iter > max_iter
-        break;
+       break;
     end
-    
+   
 end
-    
+
+
+
+
             
 function num_cluster_Callback(hObject, eventdata, handles)
 % hObject    handle to num_cluster (see GCBO)
@@ -187,6 +199,8 @@ function bt_choose_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %axes(handles.axes1)
+axes(handles.axes1);
+cla;
 set(handles.bt_para,'enable','off');
 set(handles.bt_choose,'enable','off');
 set(handles.cluster,'enable','off');
@@ -208,7 +222,8 @@ set(handles.cluster,'enable','on');
 handles.x = x;
 handles.y = y;
 guidata(hObject,handles);
-plot(handles.axes1,x,y,'o');
+plot(handles.axes1,x,y,'.');
+hold OFF;
 
 
 % --- Executes on button press in bt_para.
@@ -219,6 +234,8 @@ function bt_para_Callback(hObject, eventdata, handles)
 
 %%%%%%%%%%%%%%%%%%%%get the input parameter from users%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%and generate data points%%%%%%%%%%%%%%%%%%%%%%%%
+axes(handles.axes1);
+cla;
 answer(1) = 0;
 answer(2) = 0;
 answer_list = [];
@@ -239,8 +256,9 @@ for i = drange(1:number)
     x = [x;temp_x];
     y = [y;temp_y];
     hold on;
-    plot(handles.axes1,temp_x,temp_y,'ro');
+    plot(handles.axes1,temp_x,temp_y,'r.');
 end
+
 handles.x = x;
 handles.y = y;
 guidata(hObject,handles);
